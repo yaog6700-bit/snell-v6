@@ -117,6 +117,7 @@ install_snell() {
 
     if [ -f "$CONF_FILE" ]; then
         echo -e "${YELLOW}检测到已存在配置文件 ($CONF_FILE)，将保留原有配置。\033[0m"
+        echo -e "${YELLOW}如需修改端口或密码，请在主菜单选择 [5. 查看/修改配置]。\033[0m"
     else
         RANDOM_PORT=$(shuf -i 10000-65000 -n 1)
         RANDOM_PSK=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20)
@@ -214,7 +215,67 @@ uninstall_snell() {
     echo -e "${GREEN}Snell 卸载完成！${RESET}"
 }
 
-# --- 6. 交互式菜单 ---
+# --- 6. 查看/修改配置 ---
+modify_config() {
+    CONF_DIR="/etc/snell"
+    CONF_FILE="$CONF_DIR/snell-server.conf"
+    
+    if [ ! -f "$CONF_FILE" ]; then
+        echo -e "${RED}未检测到 Snell 配置文件，请先安装 Snell！${RESET}"
+        return
+    fi
+    
+    echo -e "\n${CYAN}当前配置文件内容：${RESET}"
+    cat $CONF_FILE
+    echo -e "${CYAN}=================================${RESET}"
+    
+    read -p "是否需要修改端口和密码？[y/N]: " modify_choice
+    if [[ "$modify_choice" == "y" || "$modify_choice" == "Y" ]]; then
+        RANDOM_PORT=$(shuf -i 10000-65000 -n 1)
+        RANDOM_PSK=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20)
+        
+        echo -e ""
+        read -p "请输入新的 Snell 端口号 [1-65535] (直接回车默认随机: $RANDOM_PORT): " USER_PORT < /dev/tty
+        if [ -z "$USER_PORT" ]; then
+            USER_PORT=$RANDOM_PORT
+        fi
+
+        read -p "请输入新的 Snell 密码 (直接回车默认随机: $RANDOM_PSK): " USER_PSK < /dev/tty
+        if [ -z "$USER_PSK" ]; then
+            USER_PSK=$RANDOM_PSK
+        fi
+        
+        cat > $CONF_FILE <<EOF
+[snell-server]
+listen = 0.0.0.0:$USER_PORT
+psk = $USER_PSK
+ipv6 = false
+EOF
+        echo -e "${GREEN}配置文件已更新！正在重启服务...${RESET}"
+        systemctl restart snell
+        if systemctl is-active --quiet snell; then
+            echo -e "${GREEN}服务重启成功，新配置已生效！${RESET}"
+            
+            # 输出新的 Surge 配置
+            PUBLIC_IP=$(curl -s4 ifconfig.me 2>/dev/null || curl -s4 icanhazip.com 2>/dev/null)
+            if [ -n "$PUBLIC_IP" ]; then
+                echo -e "\n${YELLOW}>>> 最新 Surge 客户端配置格式 <<<${RESET}"
+                # 尝试检测当前运行的版本
+                SURGE_VER="4"
+                if snell-server --version 2>&1 | grep -q "v5"; then SURGE_VER=5; fi
+                if snell-server --version 2>&1 | grep -q "v6"; then SURGE_VER=6; fi
+                echo -e "Proxy = snell, ${PUBLIC_IP}, ${USER_PORT}, psk = ${USER_PSK}, version = ${SURGE_VER}, reuse = true, tfo = true"
+                echo -e "${GREEN}=========================================${RESET}\n"
+            fi
+        else
+            echo -e "${RED}警告：服务重启失败，请检查配置。${RESET}"
+        fi
+    else
+        echo -e "${YELLOW}已取消修改。${RESET}"
+    fi
+}
+
+# --- 7. 交互式菜单 ---
 menu() {
     clear
     echo -e "${CYAN}=================================${RESET}"
@@ -225,10 +286,11 @@ menu() {
     echo -e "  2. 安装/更新 Snell V5"
     echo -e "  3. 安装/更新 Snell V6 (推荐)"
     echo -e "  4. 完全卸载 Snell"
+    echo -e "  5. 查看/修改配置 (端口和密码)"
     echo -e "  0. 退出脚本"
     echo -e "${CYAN}=================================${RESET}"
     
-    read -p "请输入数字选项 [0-4]: " choice
+    read -p "请输入数字选项 [0-5]: " choice
 
     case $choice in
         1)
@@ -251,6 +313,9 @@ menu() {
             ;;
         4)
             uninstall_snell
+            ;;
+        5)
+            modify_config
             ;;
         0)
             echo -e "${GREEN}退出脚本，感谢使用！${RESET}"

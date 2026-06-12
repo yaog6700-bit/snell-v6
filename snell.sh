@@ -3,6 +3,8 @@
 # 描述: Snell V4/V5/V6 多版本一键安装管理脚本
 # =========================================
 
+SCRIPT_VERSION="v1.0"
+
 # --- 颜色定义 ---
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -279,7 +281,7 @@ EOF
 menu() {
     clear
     echo -e "${CYAN}=================================${RESET}"
-    echo -e "${GREEN}  Snell 代理一键安装管理脚本${RESET}"
+    echo -e "${GREEN}  Snell 代理一键安装管理脚本 [${SCRIPT_VERSION}]${RESET}"
     echo -e "${YELLOW}  支持版本: V4 / V5 / V6${RESET}"
     echo -e "${CYAN}=================================${RESET}"
     echo -e "  1. 安装/更新 Snell V4"

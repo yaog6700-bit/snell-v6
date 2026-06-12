@@ -121,10 +121,21 @@ install_snell() {
         RANDOM_PORT=$(shuf -i 10000-65000 -n 1)
         RANDOM_PSK=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20)
         
+        echo -e ""
+        read -p "请输入 Snell 端口号 [1-65535] (直接回车默认随机: $RANDOM_PORT): " USER_PORT
+        if [ -z "$USER_PORT" ]; then
+            USER_PORT=$RANDOM_PORT
+        fi
+
+        read -p "请输入 Snell 密码 (直接回车默认随机: $RANDOM_PSK): " USER_PSK
+        if [ -z "$USER_PSK" ]; then
+            USER_PSK=$RANDOM_PSK
+        fi
+        
         cat > $CONF_FILE <<EOF
 [snell-server]
-listen = 0.0.0.0:$RANDOM_PORT
-psk = $RANDOM_PSK
+listen = 0.0.0.0:$USER_PORT
+psk = $USER_PSK
 ipv6 = false
 EOF
         echo -e "${GREEN}已生成全新配置文件！${RESET}"

@@ -18,16 +18,13 @@ fi
 
 # --- 1. 安装必要依赖 ---
 install_dependencies() {
-    if ! command -v unzip &> /dev/null || ! command -v wget &> /dev/null || ! command -v curl &> /dev/null; then
-        echo -e "${CYAN}正在安装所需依赖 (wget, curl, unzip)...${RESET}"
-        if [ -x "$(command -v apt)" ]; then
-            apt update && apt install -y wget curl unzip
-        elif [ -x "$(command -v yum)" ]; then
-            yum install -y wget curl unzip
-        else
-            echo -e "${RED}不支持的包管理器，请手动安装 wget, curl, unzip。${RESET}"
-            exit 1
-        fi
+    echo -e "${CYAN}正在检查并安装所需依赖 (wget, curl, unzip, c-ares, libsodium)...${RESET}"
+    if [ -x "$(command -v apt)" ]; then
+        apt update && apt install -y wget curl unzip libc-ares2 libsodium-dev
+    elif [ -x "$(command -v yum)" ]; then
+        yum install -y wget curl unzip c-ares libsodium
+    else
+        echo -e "${YELLOW}警告: 不支持的包管理器，请手动确认已安装 wget, curl, unzip, c-ares 和 libsodium。${RESET}"
     fi
 }
 

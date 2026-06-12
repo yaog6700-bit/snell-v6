@@ -1,6 +1,6 @@
 #!/bin/bash
 # =========================================
-# 描述: Snell V4/V5/V6 多版本一键安装/管理脚本
+# 描述: Snell V4/V5/V6 多版本一键安装管理脚本
 # =========================================
 
 # --- 颜色定义 ---
@@ -58,21 +58,18 @@ get_arch() {
 get_versions() {
     echo -e "${CYAN}正在获取 Snell 最新版本信息...${RESET}"
     
-    # 兜底版本号
+    # 根据官方文档设定的准确兜底版本号
     V4_VER="v4.1.1"
     V5_VER="v5.0.1" 
     V6_VER="v6.0.0b1"
 
     # 尝试在线抓取最新版本 (通过 Surge 官方文档)
-    # V4
     FETCH_V4=$(curl -sL https://manual.nssurge.com/others/snell.html | grep -oP 'snell-server-v\K4\.[0-9]+\.[0-9]+' | head -n 1)
     if [ -n "$FETCH_V4" ]; then V4_VER="v${FETCH_V4}"; fi
 
-    # V5 (屏蔽 beta 标识，取稳定版)
     FETCH_V5=$(curl -sL https://manual.nssurge.com/others/snell.html | grep -oP 'snell-server-v\K5\.[0-9]+\.[0-9]+[a-z0-9]*' | grep -v b | head -n 1)
     if [ -n "$FETCH_V5" ]; then V5_VER="v${FETCH_V5}"; fi
 
-    # V6 (当前为测试版，直接抓取)
     FETCH_V6=$(curl -sL https://manual.nssurge.com/others/snell.html | grep -oP 'snell-server-v\K6\.[0-9]+\.[0-9]+[a-z0-9]*' | head -n 1)
     if [ -n "$FETCH_V6" ]; then V6_VER="v${FETCH_V6}"; fi
 }
@@ -85,7 +82,15 @@ install_snell() {
     case $VERSION_TYPE in
         4) VERSION_NUM=$V4_VER ;;
         5) VERSION_NUM=$V5_VER ;;
-        6) VERSION_NUM=$V6_VER ;;
+        6) 
+            VERSION_NUM=$V6_VER 
+            # 官方 V6 目前没有提供 armv7l 版本，进行拦截
+            if [ "$SNELL_ARCH" = "armv7l" ]; then
+                echo -e "${RED}错误: Snell V6 官方目前暂未提供 armv7l 架构的安装包。${RESET}"
+                echo -e "${YELLOW}建议安装 V5 或 V4 版本。${RESET}"
+                exit 1
+            fi
+            ;;
     esac
 
     echo -e "${CYAN}准备安装 Snell ${VERSION_NUM} (${SNELL_ARCH})...${RESET}"
@@ -114,7 +119,7 @@ install_snell() {
     mkdir -p $CONF_DIR
 
     if [ -f "$CONF_FILE" ]; then
-        echo -e "${YELLOW}检测到已存在配置文件 ($CONF_FILE)，将保留原有端口和密码。\033[0m"
+        echo -e "${YELLOW}检测到已存在配置文件 ($CONF_FILE)，将保留原有配置。\033[0m"
     else
         RANDOM_PORT=$(shuf -i 10000-65000 -n 1)
         RANDOM_PSK=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20)

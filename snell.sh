@@ -20,7 +20,7 @@ fi
 install_dependencies() {
     echo -e "${CYAN}正在检查并安装所需依赖 (wget, curl, unzip, c-ares, libsodium)...${RESET}"
     if [ -x "$(command -v apt)" ]; then
-        apt update && apt install -y wget curl unzip libc-ares2 libsodium-dev
+        apt update && apt install -y wget curl unzip libc-ares2 libsodium23
     elif [ -x "$(command -v yum)" ]; then
         yum install -y wget curl unzip c-ares libsodium
     else

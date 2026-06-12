@@ -185,7 +185,7 @@ EOF
                 5) SURGE_VER=5 ;;
                 6) SURGE_VER=6 ;;
             esac
-            echo -e "Proxy = snell, ${PUBLIC_IP}, ${CONF_PORT}, psk = ${CONF_PSK}, version = ${SURGE_VER}, reuse = true, tfo = true"
+            echo -e "Snell${SURGE_VER} = snell, ${PUBLIC_IP}, ${CONF_PORT}, psk = ${CONF_PSK}, version = ${SURGE_VER}, reuse = true, tfo = true"
             echo -e "${GREEN}=========================================${RESET}\n"
         fi
 
@@ -264,7 +264,7 @@ EOF
                 SURGE_VER="4"
                 if snell-server --version 2>&1 | grep -q "v5"; then SURGE_VER=5; fi
                 if snell-server --version 2>&1 | grep -q "v6"; then SURGE_VER=6; fi
-                echo -e "Proxy = snell, ${PUBLIC_IP}, ${USER_PORT}, psk = ${USER_PSK}, version = ${SURGE_VER}, reuse = true, tfo = true"
+                echo -e "Snell${SURGE_VER} = snell, ${PUBLIC_IP}, ${USER_PORT}, psk = ${USER_PSK}, version = ${SURGE_VER}, reuse = true, tfo = true"
                 echo -e "${GREEN}=========================================${RESET}\n"
             fi
         else

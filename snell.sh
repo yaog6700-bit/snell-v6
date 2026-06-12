@@ -171,6 +171,23 @@ EOF
         echo -e "${GREEN}=========================================${RESET}"
         cat $CONF_FILE
         echo -e "${GREEN}=========================================${RESET}"
+
+        # 获取公网IP并从配置文件读取端口和密码生成 Surge 配置
+        PUBLIC_IP=$(curl -s4 ifconfig.me 2>/dev/null || curl -s4 icanhazip.com 2>/dev/null)
+        CONF_PORT=$(grep 'listen' $CONF_FILE | awk -F ':' '{print $NF}' | tr -d ' ')
+        CONF_PSK=$(grep 'psk' $CONF_FILE | awk -F '=' '{print $2}' | tr -d ' ')
+        
+        if [ -n "$PUBLIC_IP" ] && [ -n "$CONF_PORT" ] && [ -n "$CONF_PSK" ]; then
+            echo -e "\n${YELLOW}>>> Surge 客户端配置格式 (供一键复制) <<<${RESET}"
+            case $VERSION_TYPE in
+                4) SURGE_VER=4 ;;
+                5) SURGE_VER=5 ;;
+                6) SURGE_VER=6 ;;
+            esac
+            echo -e "Proxy = snell, ${PUBLIC_IP}, ${CONF_PORT}, psk = ${CONF_PSK}, version = ${SURGE_VER}, reuse = true, tfo = true"
+            echo -e "${GREEN}=========================================${RESET}\n"
+        fi
+
         echo -e "服务状态查询: ${CYAN}systemctl status snell${RESET}"
         echo -e "实时日志查询: ${CYAN}journalctl -u snell -f${RESET}"
     else

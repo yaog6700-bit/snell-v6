@@ -122,12 +122,12 @@ install_snell() {
         RANDOM_PSK=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20)
         
         echo -e ""
-        read -p "请输入 Snell 端口号 [1-65535] (直接回车默认随机: $RANDOM_PORT): " USER_PORT
+        read -p "请输入 Snell 端口号 [1-65535] (直接回车默认随机: $RANDOM_PORT): " USER_PORT < /dev/tty
         if [ -z "$USER_PORT" ]; then
             USER_PORT=$RANDOM_PORT
         fi
 
-        read -p "请输入 Snell 密码 (直接回车默认随机: $RANDOM_PSK): " USER_PSK
+        read -p "请输入 Snell 密码 (直接回车默认随机: $RANDOM_PSK): " USER_PSK < /dev/tty
         if [ -z "$USER_PSK" ]; then
             USER_PSK=$RANDOM_PSK
         fi

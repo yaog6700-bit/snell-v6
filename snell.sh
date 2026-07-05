@@ -60,7 +60,7 @@ get_versions() {
     # 根据官方文档设定的准确兜底版本号
     V4_VER="v4.1.1"
     V5_VER="v5.0.1" 
-    V6_VER="v6.0.0b1"
+    V6_VER="v6.0.0b4"
 
     # 尝试在线抓取最新版本 (通过 Surge 官方文档)
     FETCH_V4=$(curl -sL https://manual.nssurge.com/others/snell.html | grep -oP 'snell-server-v\K4\.[0-9]+\.[0-9]+' | head -n 1)
@@ -141,6 +141,25 @@ listen = 0.0.0.0:$USER_PORT
 psk = $USER_PSK
 ipv6 = false
 EOF
+        if [ "$VERSION_TYPE" = "6" ]; then
+            echo -e ""
+            echo -e "${CYAN}请选择 Snell V6 的流量整形模式 (mode):${RESET}"
+            echo -e "  1) default    - 默认模式，开启混淆和 AES 加密 (推荐)"
+            echo -e "  2) unshaped   - 关闭混淆，仅使用 AES 加密 (吞吐量提升约10%)"
+            echo -e "  3) unsafe-raw - 关闭加密和混淆，明文转发 (仅限内网等安全环境)"
+            read -p "请输入数字 [1-3] (直接回车默认1): " MODE_CHOICE < /dev/tty
+            
+            SNELL_MODE="default"
+            if [ "$MODE_CHOICE" = "2" ]; then
+                SNELL_MODE="unshaped"
+            elif [ "$MODE_CHOICE" = "3" ]; then
+                SNELL_MODE="unsafe-raw"
+            fi
+            
+            if [ "$SNELL_MODE" != "default" ]; then
+                echo "mode = $SNELL_MODE" >> $CONF_FILE
+            fi
+        fi
         echo -e "${GREEN}已生成全新配置文件！${RESET}"
     fi
 
@@ -187,7 +206,16 @@ EOF
                 5) SURGE_VER=5 ;;
                 6) SURGE_VER=6 ;;
             esac
-            echo -e "Snell${SURGE_VER} = snell, ${PUBLIC_IP}, ${CONF_PORT}, psk = ${CONF_PSK}, version = ${SURGE_VER}, reuse = true, tfo = true"
+            
+            CONF_MODE=""
+            if [ "$VERSION_TYPE" = "6" ]; then
+                PARSED_MODE=$(grep 'mode' $CONF_FILE | awk -F '=' '{print $2}' | tr -d ' ')
+                if [ -n "$PARSED_MODE" ]; then
+                    CONF_MODE=", mode = ${PARSED_MODE}"
+                fi
+            fi
+            
+            echo -e "Snell${SURGE_VER} = snell, ${PUBLIC_IP}, ${CONF_PORT}, psk = ${CONF_PSK}, version = ${SURGE_VER}${CONF_MODE}, reuse = true, tfo = true"
             echo -e "${GREEN}=========================================${RESET}\n"
         fi
 
@@ -247,12 +275,36 @@ modify_config() {
             USER_PSK=$RANDOM_PSK
         fi
         
+        # 尝试检测当前运行的版本
+        SURGE_VER="4"
+        if snell-server --version 2>&1 | grep -q "v5"; then SURGE_VER=5; fi
+        if snell-server --version 2>&1 | grep -q "v6"; then SURGE_VER=6; fi
+
         cat > $CONF_FILE <<EOF
 [snell-server]
 listen = 0.0.0.0:$USER_PORT
 psk = $USER_PSK
 ipv6 = false
 EOF
+        if [ "$SURGE_VER" = "6" ]; then
+            echo -e ""
+            echo -e "${CYAN}请选择 Snell V6 的流量整形模式 (mode):${RESET}"
+            echo -e "  1) default    - 默认模式，开启混淆和 AES 加密 (推荐)"
+            echo -e "  2) unshaped   - 关闭混淆，仅使用 AES 加密 (吞吐量提升约10%)"
+            echo -e "  3) unsafe-raw - 关闭加密和混淆，明文转发 (仅限内网等安全环境)"
+            read -p "请输入数字 [1-3] (直接回车默认1): " MODE_CHOICE < /dev/tty
+            
+            SNELL_MODE="default"
+            if [ "$MODE_CHOICE" = "2" ]; then
+                SNELL_MODE="unshaped"
+            elif [ "$MODE_CHOICE" = "3" ]; then
+                SNELL_MODE="unsafe-raw"
+            fi
+            
+            if [ "$SNELL_MODE" != "default" ]; then
+                echo "mode = $SNELL_MODE" >> $CONF_FILE
+            fi
+        fi
         echo -e "${GREEN}配置文件已更新！正在重启服务...${RESET}"
         systemctl restart snell
         if systemctl is-active --quiet snell; then
@@ -262,11 +314,14 @@ EOF
             PUBLIC_IP=$(curl -s4 ifconfig.me 2>/dev/null || curl -s4 icanhazip.com 2>/dev/null)
             if [ -n "$PUBLIC_IP" ]; then
                 echo -e "\n${YELLOW}>>> 最新 Surge 客户端配置格式 <<<${RESET}"
-                # 尝试检测当前运行的版本
-                SURGE_VER="4"
-                if snell-server --version 2>&1 | grep -q "v5"; then SURGE_VER=5; fi
-                if snell-server --version 2>&1 | grep -q "v6"; then SURGE_VER=6; fi
-                echo -e "Snell${SURGE_VER} = snell, ${PUBLIC_IP}, ${USER_PORT}, psk = ${USER_PSK}, version = ${SURGE_VER}, reuse = true, tfo = true"
+                CONF_MODE=""
+                if [ "$SURGE_VER" = "6" ]; then
+                    PARSED_MODE=$(grep 'mode' $CONF_FILE | awk -F '=' '{print $2}' | tr -d ' ')
+                    if [ -n "$PARSED_MODE" ]; then
+                        CONF_MODE=", mode = ${PARSED_MODE}"
+                    fi
+                fi
+                echo -e "Snell${SURGE_VER} = snell, ${PUBLIC_IP}, ${USER_PORT}, psk = ${USER_PSK}, version = ${SURGE_VER}${CONF_MODE}, reuse = true, tfo = true"
                 echo -e "${GREEN}=========================================${RESET}\n"
             fi
         else
